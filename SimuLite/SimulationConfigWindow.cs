@@ -34,20 +34,41 @@ namespace SimuLite
             }
         }
 
-        private string _altitudeString = "0";
+        private string _peString = "0";
 
-        public string AltitudeString
+        public string PeString
         {
-            get { return _altitudeString; }
+            get { return _peString; }
             set
             {
-                if (value != _altitudeString)
+                if (value != _peString)
                 {
-                    _altitudeString = value;
-                    double alt;
-                    if (double.TryParse(value, out alt))
+                    _peString = value;
+                    double pe;
+                    if (double.TryParse(value, out pe))
                     {
-                        config.Altitude = alt;
+                        config.Periapsis = pe;
+                        _peString = config.Periapsis.ToString();
+                    }
+                }
+            }
+        }
+
+        private string _apString = "0";
+
+        public string ApString
+        {
+            get { return _apString; }
+            set
+            {
+                if (value != _apString)
+                {
+                    _apString = value;
+                    double ap;
+                    if (double.TryParse(value, out ap))
+                    {
+                        config.Apoapsis = ap;
+                        _apString = config.Apoapsis.ToString();
                     }
                 }
             }
@@ -67,6 +88,7 @@ namespace SimuLite
                     if (double.TryParse(value, out inc))
                     {
                         config.Inclination = inc;
+                        _inclinationString = config.Inclination.ToString();
                     }
                 }
             }
@@ -109,8 +131,11 @@ namespace SimuLite
 
             if (config.OrbitalSimulation)
             {
-                GUILayout.Label("Altitude:");
-                AltitudeString = GUILayout.TextField(AltitudeString);
+                GUILayout.Label("Apoapsis:");
+                ApString = GUILayout.TextField(ApString);
+
+                GUILayout.Label("Periapsis:");
+                PeString = GUILayout.TextField(PeString);
 
                 GUILayout.Label("Inclination:");
                 InclinationString = GUILayout.TextField(InclinationString);

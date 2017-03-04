@@ -8,24 +8,18 @@ using UnityEngine;
 
 namespace SimuLite
 {
-    //[KSPAddon(KSPAddon.Startup.AllGameScenes, false)]
-    //public class SimuLiteLoader : MonoBehaviour
-    //{
-    //    public void Start()
-    //    {
-    //        string finalPath = KSPUtil.ApplicationRootPath + "saves/" + HighLogic.SaveFolder + "/SimuLite_backup.sfs";
-    //        if (HighLogic.LoadedSceneIsGame && !(HighLogic.LoadedSceneIsFlight || HighLogic.LoadedSceneIsEditor))
-    //        { //Don't load the backup if currently in the flight scene
-    //            if (SimuLite.LoadBackupFile(HighLogic.LoadedScene))
-    //            {
-    //                if (File.Exists(finalPath))
-    //                {
-    //                    File.Delete(finalPath);
-    //                }
-    //            }
-    //        }
-    //    }
-    //}
+    [KSPAddon(KSPAddon.Startup.AllGameScenes, false)]
+    public class SimuLiteLoader : MonoBehaviour
+    {
+        public void Start()
+        {
+            string finalPath = KSPUtil.ApplicationRootPath + "saves/" + HighLogic.SaveFolder + "/SimuLite_backup.sfs";
+            if (HighLogic.LoadedSceneIsGame && !(HighLogic.LoadedSceneIsFlight || HighLogic.LoadedSceneIsEditor))
+            { //Don't load the backup if currently in the flight scene
+                SimuLite.LoadBackupFile(HighLogic.LoadedScene);
+            }
+        }
+    }
 
     [KSPAddon(KSPAddon.Startup.FlightAndEditor, false)]
     public class SimuLite : MonoBehaviour

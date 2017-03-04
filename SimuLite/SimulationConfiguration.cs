@@ -135,26 +135,26 @@ namespace SimuLite
             }
         }
 
-        private double _altitude = 0;
-        /// <summary>
-        /// The orbital altitude to orbit at. Default 0 or 1000+atmosphere height
-        /// </summary>
-        public double Altitude
-        { 
-            get { return _altitude; }
-            set
-            {
-                if (_altitude != value)
-                {
-                    _altitude = value;
-                    if (SelectedBody.atmosphere && _altitude < (SelectedBody.atmosphereDepth + 1000))
-                    {
-                        _altitude = SelectedBody.atmosphereDepth + 1000;
-                    }
-                    //CalculateComplexity(); //shouldn't affect it
-                }
-            }
-        }
+        //private double _altitude = 0;
+        ///// <summary>
+        ///// The orbital altitude to orbit at. Default 0 or 1000+atmosphere height
+        ///// </summary>
+        //public double Altitude
+        //{ 
+        //    get { return _altitude; }
+        //    set
+        //    {
+        //        if (_altitude != value)
+        //        {
+        //            _altitude = value;
+        //            if (SelectedBody.atmosphere && _altitude < (SelectedBody.atmosphereDepth + 1000))
+        //            {
+        //                _altitude = SelectedBody.atmosphereDepth + 1000;
+        //            }
+        //            //CalculateComplexity(); //shouldn't affect it
+        //        }
+        //    }
+        //}
 
         private double _inclination;
         /// <summary>
@@ -170,6 +170,48 @@ namespace SimuLite
                     _inclination = value % 360;
                     //CalculateComplexity(); //shouldn't affect it
                 }
+            }
+        }
+
+        private double _apoapsis = 1;
+
+        public double Apoapsis
+        {
+            get { return _apoapsis; }
+            set
+            {
+                _apoapsis = value;
+                if (value < Periapsis)
+                {
+                    _apoapsis = Periapsis;
+                }
+                if (_apoapsis <= 0)
+                {
+                    _apoapsis = 1;
+                }
+            }
+        }
+
+        private double _periapsis = 0;
+
+        public double Periapsis
+        {
+            get { return _periapsis; }
+            set
+            {
+                _periapsis = value;
+                if (value > Apoapsis)
+                {
+                    _periapsis = Apoapsis;
+                }
+            }
+        }
+
+        public double Eccentricity
+        {
+            get
+            {
+                return (Apoapsis - Periapsis) / (Apoapsis + Periapsis);
             }
         }
 
@@ -304,12 +346,12 @@ namespace SimuLite
         private VesselSpawner.VesselData makeVessel()
         {
             VesselSpawner.VesselData data = new VesselSpawner.VesselData();
-            data.orbit = new Orbit(Inclination, 0, (Altitude + SelectedBody.Radius), 0, 0, 0, UT.Value, SelectedBody);
+            data.orbit = new Orbit(Inclination, Eccentricity, (Periapsis + Apoapsis + 2*SelectedBody.Radius) / 2.0, 0, 0, 0, UT.Value, SelectedBody);
             //data.orbit.Init();
             //data.orbit.UpdateFromUT(UT.Value);
 
             data.body = SelectedBody;
-            data.altitude = Altitude;
+            data.altitude = Periapsis;
             data.shipConstruct = Ship;
             //data.crew = manifest.GetAllCrew();
             data.flagURL = EditorLogic.FlagURL;
