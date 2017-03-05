@@ -37,7 +37,7 @@ namespace SimuLite
         #endregion Public Properties
 
 
-        public void Awake()
+        public void Start()
         {
             if (Instance == null)
             {
@@ -93,11 +93,11 @@ namespace SimuLite
         #endregion GUI Code
 
         #region Public Methods
-        public void ActivateSimulation(double complexity)
+        public void ActivateSimulation(SimulationConfiguration simulation)
         {
             MakeBackupFile();
+            StaticInformation.Simulation = simulation;
             StaticInformation.IsSimulating = true;
-            StaticInformation.CurrentComplexity = complexity;
             StaticInformation.LastEditor = HighLogic.CurrentGame.editorFacility;
             StaticInformation.LastShip = ShipConstruction.ShipConfig;
             activateSimulationLocks();

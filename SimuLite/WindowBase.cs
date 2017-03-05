@@ -98,6 +98,14 @@ namespace SimuLite
 
 
         /// <summary>
+        /// Sets the height of the window to 1 so it can automatically resize to the correct height
+        /// </summary>
+        public void MinimizeHeight()
+        {
+            _windowRect.height = 1;
+        }
+
+        /// <summary>
         /// Makes the window draggable
         /// </summary>
         protected void dragWindow()

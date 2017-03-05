@@ -8,7 +8,10 @@ namespace SimuLite
 {
     public class PauseWindow : WindowBase
     {
-        public PauseWindow() : base(8235, "Paused", false, true) { }
+        public PauseWindow() : base(8235, "Paused", false, true)
+        {
+            SetSize(0, 0, 150, 1);
+        }
 
         public override void Draw(int windowID)
         {

@@ -9,9 +9,17 @@ namespace SimuLite
     public class SimulationConfigWindow : WindowBase
     {
 
-        public SimulationConfigWindow() : base(8234, "Simulation Configuration") { }
+        public SimulationConfigWindow() : base(8234, "Simulation Configuration")
+        {
+            config = new SimulationConfiguration() { OrbitalSimulation = (StaticInformation.Simulation?.OrbitalSimulation ?? false) };
 
-        internal SimulationConfiguration config = new SimulationConfiguration();
+            //these are set from the last simulation
+            SetPe(PeString);
+            SetAp(ApString);
+            SetInc(InclinationString);
+        }
+
+        internal SimulationConfiguration config;
 
         #region UI Properties
         /// <summary>
@@ -34,69 +42,41 @@ namespace SimuLite
             }
         }
 
-        private string _peString = "0";
+        private string _peString = (StaticInformation.Simulation?.Periapsis/1000)?.ToString() ?? "75";
 
         public string PeString
         {
             get { return _peString; }
-            set
-            {
-                if (value != _peString)
-                {
-                    _peString = value;
-                    double pe;
-                    if (double.TryParse(value, out pe))
-                    {
-                        config.Periapsis = pe;
-                        _peString = config.Periapsis.ToString();
-                    }
-                }
-            }
+            set { _peString = value; }
         }
 
-        private string _apString = "0";
+        private string _apString = (StaticInformation.Simulation?.Apoapsis / 1000)?.ToString() ?? "75";
 
         public string ApString
         {
             get { return _apString; }
-            set
-            {
-                if (value != _apString)
-                {
-                    _apString = value;
-                    double ap;
-                    if (double.TryParse(value, out ap))
-                    {
-                        config.Apoapsis = ap;
-                        _apString = config.Apoapsis.ToString();
-                    }
-                }
-            }
+            set { _apString = value; }
         }
 
-        private string _inclinationString = "0";
+        private string _inclinationString = StaticInformation.Simulation?.Inclination.ToString() ?? "0";
 
         public string InclinationString
         {
             get { return _inclinationString; }
-            set
-            {
-                if (value != _inclinationString)
-                {
-                    _inclinationString = value;
-                    double inc;
-                    if (double.TryParse(value, out inc))
-                    {
-                        config.Inclination = inc;
-                        _inclinationString = config.Inclination.ToString();
-                    }
-                }
-            }
+            set { _inclinationString = value; }
         }
+
+        private int startPointSelection = (StaticInformation.Simulation?.MeanAnomalyAtEpoch ?? 0) > 0 ? 1 : 0; //this is kind of awful looking
+                                                                                                               //It just means 0 if it was defined as 0 last time, 1 if defined as not 0, or 0 if not defined at all
 
         #endregion UI Properties
 
 
+        #region String Verification
+        private GUIStyle regularTextField = null;
+        private GUIStyle redColorTextField = null;
+        private bool apOk = true, peOk = true, incOk = true;
+        #endregion
         public override void Draw(int windowID)
         {
             //planet
@@ -115,6 +95,15 @@ namespace SimuLite
 
             //?expected duration?
             //?expected core hour usage?
+
+            if (regularTextField == null || redColorTextField == null)
+            {
+                regularTextField = new GUIStyle(GUI.skin.textField);
+                redColorTextField = new GUIStyle(GUI.skin.textField);
+                redColorTextField.normal.textColor = Color.red;
+                redColorTextField.focused.textColor = Color.red;
+                redColorTextField.active.textColor = Color.red;
+            }
             GUILayout.BeginVertical();
 
             GUILayout.Label("Selected Body:");
@@ -122,7 +111,12 @@ namespace SimuLite
 
             if (config.SelectedBody == Planetarium.fetch.Home)
             {
-                config.OrbitalSimulation = GUILayout.Toggle(config.OrbitalSimulation, "Orbital Simulation");
+                bool newValue = GUILayout.Toggle(config.OrbitalSimulation, "Orbital Simulation");
+                if (newValue != config.OrbitalSimulation)
+                {
+                    MinimizeHeight();
+                    config.OrbitalSimulation = newValue;
+                }
             }
             else
             {
@@ -131,19 +125,41 @@ namespace SimuLite
 
             if (config.OrbitalSimulation)
             {
-                GUILayout.Label("Apoapsis:");
-                ApString = GUILayout.TextField(ApString);
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Apoapsis (km):");
+                apOk = SetAp(GUILayout.TextField(ApString, apOk ? regularTextField : redColorTextField, GUILayout.Width(100)));
+                GUILayout.EndHorizontal();
 
-                GUILayout.Label("Periapsis:");
-                PeString = GUILayout.TextField(PeString);
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Periapsis (km):");
+                peOk = SetPe(GUILayout.TextField(PeString, peOk ? regularTextField : redColorTextField, GUILayout.Width(100)));
+                GUILayout.EndHorizontal();
 
-                GUILayout.Label("Inclination:");
-                InclinationString = GUILayout.TextField(InclinationString);
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Inclination (deg):");
+                incOk = SetInc(GUILayout.TextField(InclinationString, incOk ? regularTextField : redColorTextField, GUILayout.Width(100)));
+                GUILayout.EndHorizontal();
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Start at: ");
+                startPointSelection = GUILayout.SelectionGrid(startPointSelection, new string[2] { "Periapsis", "Apoapsis" }, 2);
+                GUILayout.EndHorizontal();
             }
 
-            if (GUILayout.Button("Simulate!"))
+
+            bool startable = canStart();
+            if (startable && GUILayout.Button("Simulate!"))
             {
+                config.MeanAnomalyAtEpoch = Math.PI * startPointSelection; //0 if Pe, 180 if Ap
                 config.StartSimulation();
+            }
+            else if (!startable)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.FlexibleSpace();
+                GUILayout.Label("Invalid Parameters");
+                GUILayout.FlexibleSpace();
+                GUILayout.EndHorizontal();
             }
 
             GUILayout.EndVertical();
@@ -156,6 +172,48 @@ namespace SimuLite
 
 
             base.Draw(windowID);
+        }
+
+        private bool canStart()
+        {
+            bool canStart = (apOk && peOk && incOk && config?.Ship?.Count > 0);
+            return canStart;
+        }
+
+        private bool SetPe(string value)
+        {
+            _peString = value;
+            double pe;
+            if (double.TryParse(value, out pe))
+            {
+                config.Periapsis = pe * 1000;
+                return config.Periapsis == pe*1000;
+            }
+            return false;
+        }
+
+        private bool SetAp(string value)
+        {
+            _apString = value;
+            double ap;
+            if (double.TryParse(value, out ap))
+            {
+                config.Apoapsis = ap * 1000;
+                return config.Apoapsis == ap*1000;
+            }
+            return false;
+        }
+
+        private bool SetInc(string value)
+        {
+            _inclinationString = value;
+            double inc;
+            if (double.TryParse(value, out inc))
+            {
+                config.Inclination = inc;
+                return true;
+            }
+            return false;
         }
     }
 }

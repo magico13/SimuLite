@@ -211,8 +211,34 @@ namespace SimuLite
         {
             get
             {
-                return (Apoapsis - Periapsis) / (Apoapsis + Periapsis);
+                return (Apoapsis - Periapsis) / (Apoapsis + Periapsis + 2*SelectedBody.Radius);
             }
+        }
+
+        private double _lan = 0;
+        public double LongOfAsc
+        {
+            get { return _lan; }
+            set
+            {
+                _lan = value;
+            }
+        }
+
+        private double _argPe = 0;
+
+        public double ArgPe
+        {
+            get { return _argPe; }
+            set { _argPe = value % 360; }
+        }
+
+        private double _mEpoch = 0;
+
+        public double MeanAnomalyAtEpoch //Is this an angle or a time? //Let's try angle
+        {
+            get { return _mEpoch; }
+            set { _mEpoch = value % (2*Math.PI); }
         }
 
 
@@ -298,7 +324,8 @@ namespace SimuLite
         /// </summary>
         public void StartSimulation()
         {
-            SimuLite.Instance.ActivateSimulation(Complexity);
+            CalculateComplexity(); //make sure it's up to date
+            SimuLite.Instance.ActivateSimulation(this);
 
             setGameUT();
             if (!OrbitalSimulation)
@@ -346,9 +373,8 @@ namespace SimuLite
         private VesselSpawner.VesselData makeVessel()
         {
             VesselSpawner.VesselData data = new VesselSpawner.VesselData();
-            data.orbit = new Orbit(Inclination, Eccentricity, (Periapsis + Apoapsis + 2*SelectedBody.Radius) / 2.0, 0, 0, 0, UT.Value, SelectedBody);
-            //data.orbit.Init();
-            //data.orbit.UpdateFromUT(UT.Value);
+            data.orbit = new Orbit(Inclination, Eccentricity, (Periapsis + Apoapsis + 2*SelectedBody.Radius) / 2.0, LongOfAsc, ArgPe, 0, UT.Value, SelectedBody);
+            data.orbit.meanAnomalyAtEpoch = MeanAnomalyAtEpoch;
 
             data.body = SelectedBody;
             data.altitude = Periapsis;
