@@ -31,7 +31,7 @@ namespace SimuLite
             //{
 
             //}
-            if (GUILayout.Button("Cancel"))
+            if (StaticInformation.RemainingCoreHours > 0 && GUILayout.Button("Cancel"))
             {
                 Close();
             }

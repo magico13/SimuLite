@@ -8,12 +8,19 @@ namespace SimuLite
 {
     public class SimulationConfigWindow : WindowBase
     {
-
         public SimulationConfigWindow() : base(8234, "Simulation Configuration")
         {
             config = new SimulationConfiguration() { OrbitalSimulation = (StaticInformation.Simulation?.OrbitalSimulation ?? false) };
 
             //these are set from the last simulation
+            if (StaticInformation.Simulation != null)
+            {
+                PeString = (StaticInformation.Simulation.Periapsis / 1000).ToString();
+                ApString = (StaticInformation.Simulation.Apoapsis / 1000).ToString();
+                InclinationString = StaticInformation.Simulation.Inclination.ToString();
+                startPointSelection = (StaticInformation.Simulation.MeanAnomalyAtEpoch > 0) ? 1 : 0;
+            }
+
             SetPe(PeString);
             SetAp(ApString);
             SetInc(InclinationString);
@@ -42,7 +49,7 @@ namespace SimuLite
             }
         }
 
-        private string _peString = (StaticInformation.Simulation?.Periapsis/1000)?.ToString() ?? "75";
+        private string _peString = "75";
 
         public string PeString
         {
@@ -50,7 +57,7 @@ namespace SimuLite
             set { _peString = value; }
         }
 
-        private string _apString = (StaticInformation.Simulation?.Apoapsis / 1000)?.ToString() ?? "75";
+        private string _apString = "75";
 
         public string ApString
         {
@@ -58,7 +65,7 @@ namespace SimuLite
             set { _apString = value; }
         }
 
-        private string _inclinationString = StaticInformation.Simulation?.Inclination.ToString() ?? "0";
+        private string _inclinationString = "0";
 
         public string InclinationString
         {
@@ -66,9 +73,26 @@ namespace SimuLite
             set { _inclinationString = value; }
         }
 
-        private int startPointSelection = (StaticInformation.Simulation?.MeanAnomalyAtEpoch ?? 0) > 0 ? 1 : 0; //this is kind of awful looking
-                                                                                                               //It just means 0 if it was defined as 0 last time, 1 if defined as not 0, or 0 if not defined at all
+        private int startPointSelection = 0;
 
+        private string _coreHoursBuy = "0";
+        public string CoreHoursBuy
+        {
+            get { return _coreHoursBuy; }
+            set { _coreHoursBuy = value; }
+        }
+
+        public CelestialBody SelectedBody
+        {
+            get
+            {
+                return config?.SelectedBody;
+            }
+            set
+            {
+                config.SelectedBody = value;
+            }
+        }
         #endregion UI Properties
 
 
@@ -77,6 +101,7 @@ namespace SimuLite
         private GUIStyle redColorTextField = null;
         private bool apOk = true, peOk = true, incOk = true;
         #endregion
+
         public override void Draw(int windowID)
         {
             //planet
@@ -146,6 +171,52 @@ namespace SimuLite
                 GUILayout.EndHorizontal();
             }
 
+            #region Core Hour Purchasing
+            //List complexity
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("Complexity: ");
+            GUILayout.Label(config.Complexity.ToString("N2") + " core-hours/s");
+            GUILayout.EndHorizontal();
+
+            if (HighLogic.CurrentGame.Mode == Game.Modes.CAREER)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Core-hours: ");
+                GUILayout.Label(StaticInformation.RemainingCoreHours.ToString("N2") + " core-hours");
+                GUILayout.EndHorizontal();
+
+                GUILayout.Label("Max simulation time: ");
+                double time = StaticInformation.RemainingCoreHours / config.Complexity;
+                GUILayout.Label(MagiCore.Utilities.GetFormattedTime(time, true));
+
+                GUILayout.Label("Purchase core-hours:");
+                GUILayout.BeginHorizontal();
+                CoreHoursBuy = GUILayout.TextField(CoreHoursBuy, GUILayout.Width(100));
+                double coreHours = 0;
+                if (double.TryParse(CoreHoursBuy, out coreHours))
+                {
+                    Dictionary<string, string> variables = new Dictionary<string, string>();
+                    variables.Add("H", coreHours.ToString()); //this way you can buy them in bulk at cheaper rates maybe
+                    //other variables? R&D level? Scientists/Engineers?
+                    double cost = MagiCore.MathParsing.ParseMath(Configuration.CoreHourCost, variables);
+                    if (GUILayout.Button("√"+Math.Ceiling(cost)))
+                    {
+                        //purchase the core hours!
+                        if (Funding.Instance.Funds >= cost)
+                        {
+                            Funding.Instance.AddFunds(-cost, TransactionReasons.None);
+                            StaticInformation.RemainingCoreHours += coreHours;
+                        }
+                    }
+                }
+                else
+                {
+                    GUILayout.Label("Invalid");
+                }
+                GUILayout.EndHorizontal();
+
+            }
+            #endregion Core Hour Purchasing
 
             bool startable = canStart();
             if (startable && GUILayout.Button("Simulate!"))
@@ -174,9 +245,11 @@ namespace SimuLite
             base.Draw(windowID);
         }
 
+        #region Private Methods
         private bool canStart()
         {
-            bool canStart = (apOk && peOk && incOk && config?.Ship?.Count > 0);
+            bool canStart = ((!config.OrbitalSimulation || (apOk && peOk && incOk)) && config?.Ship?.Count > 0);
+            canStart &= config.Complexity >= 0 && (StaticInformation.RemainingCoreHours > config.Complexity);
             return canStart;
         }
 
@@ -215,5 +288,6 @@ namespace SimuLite
             }
             return false;
         }
+        #endregion Private Methods
     }
 }

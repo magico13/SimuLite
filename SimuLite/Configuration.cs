@@ -8,6 +8,6 @@ namespace SimuLite
     public class Configuration
     {
         public static string SimComplexity = "10";
-        public static string CoreHourCost = "100";
+        public static string CoreHourCost = "100*[H]";
     }
 }
