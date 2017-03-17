@@ -43,6 +43,9 @@ namespace SimuLite
             {
                 Instance = this;
             }
+            //load config
+            Configuration.LoadFromFile();
+
             if (HighLogic.LoadedSceneIsEditor) //hacky hack for now
             {
                 simConfigWindow.Show();
@@ -144,6 +147,25 @@ namespace SimuLite
         public void MakeBackupFile()
         {
             GamePersistence.SaveGame(BACKUP_FILENAME, HighLogic.SaveFolder, SaveMode.OVERWRITE);
+        }
+
+        /// <summary>
+        /// Gets the (integer) level of a particular facility
+        /// </summary>
+        /// <param name="facility">The facility to check</param>
+        /// <returns>The level of the facility</returns>
+        public static int GetFacilityLevel(SpaceCenterFacility facility)
+        {
+            int lvl = 0;
+            if (HighLogic.CurrentGame.Mode == Game.Modes.CAREER)
+            {
+                lvl = (int)(ScenarioUpgradeableFacilities.GetFacilityLevelCount(facility) * ScenarioUpgradeableFacilities.GetFacilityLevel(facility));
+            }
+            else
+            {
+                lvl = ScenarioUpgradeableFacilities.GetFacilityLevelCount(facility); //returns 2 for VAB in Sandbox
+            }
+            return lvl;
         }
 
         #endregion Public Methods

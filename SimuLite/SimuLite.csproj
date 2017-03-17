@@ -53,6 +53,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Configuration.cs" />
+    <Compile Include="Enums.cs" />
     <Compile Include="PauseWindow.cs" />
     <Compile Include="SimulationConfiguration.cs" />
     <Compile Include="SimulationConfigWindow.cs" />

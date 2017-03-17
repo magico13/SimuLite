@@ -117,23 +117,37 @@ namespace SimuLite
         }
 
         #region Orbital Parameters
+        private SimulationType _simType = SimulationType.REGULAR;
 
-        private bool _orbitalSimulation = false;
-        /// <summary>
-        /// Whether the simulation is in orbit or on land
-        /// </summary>
-        public bool OrbitalSimulation
+        public SimulationType SimType
         {
-            get { return _orbitalSimulation; }
+            get { return _simType; }
             set
             {
-                if (_orbitalSimulation != value)
+                if (_simType != value)
                 {
-                    _orbitalSimulation = value;
-                    //CalculateComplexity();
+                    _simType = value;
+                    CalculateComplexity();
                 }
             }
         }
+
+        //private bool _orbitalSimulation = false;
+        ///// <summary>
+        ///// Whether the simulation is in orbit or on land
+        ///// </summary>
+        //public bool OrbitalSimulation
+        //{
+        //    get { return _orbitalSimulation; }
+        //    set
+        //    {
+        //        if (_orbitalSimulation != value)
+        //        {
+        //            _orbitalSimulation = value;
+        //            //CalculateComplexity();
+        //        }
+        //    }
+        //}
 
         //private double _altitude = 0;
         ///// <summary>
@@ -312,10 +326,16 @@ namespace SimuLite
             vars.Add("SMA", orbitRatio.ToString());
             vars.Add("PM", Parent.Mass.ToString());
 
-            vars.Add("O", (OrbitalSimulation ? 1 : 0).ToString()); //is an orbital simulation
+            vars.Add("T", ((int)SimType).ToString()); //simulation type (0=regular, 1=orbital, 2=landed)
 
 
-            Complexity = MagiCore.MathParsing.ParseMath(Configuration.SimComplexity, vars);
+            switch (SimType)
+            {
+                case SimulationType.REGULAR: Complexity = MagiCore.MathParsing.ParseMath(Configuration.Instance.SimComplexityRegular, vars); break;
+                case SimulationType.ORBITAL: Complexity = MagiCore.MathParsing.ParseMath(Configuration.Instance.SimComplexityOrbital, vars); break;
+                case SimulationType.LANDED: Complexity = MagiCore.MathParsing.ParseMath(Configuration.Instance.SimComplexityLanded, vars); break;
+                default: Complexity = MagiCore.MathParsing.ParseMath(Configuration.Instance.SimComplexityRegular, vars); break;
+            }
             return Complexity;
         }
 
@@ -328,7 +348,7 @@ namespace SimuLite
             SimuLite.Instance.ActivateSimulation(this);
 
             setGameUT();
-            if (!OrbitalSimulation)
+            if (SimType == SimulationType.REGULAR)
             {
                 //start new launch on launchpad/runway
                 startRegularLaunch();
@@ -373,15 +393,26 @@ namespace SimuLite
         private VesselSpawner.VesselData makeVessel()
         {
             VesselSpawner.VesselData data = new VesselSpawner.VesselData();
-            data.orbit = new Orbit(Inclination, Eccentricity, (Periapsis + Apoapsis + 2*SelectedBody.Radius) / 2.0, LongOfAsc, ArgPe, 0, UT.Value, SelectedBody);
-            data.orbit.meanAnomalyAtEpoch = MeanAnomalyAtEpoch;
+            if (SimType == SimulationType.ORBITAL)
+            {
+                data.orbit = new Orbit(Inclination, Eccentricity, (Periapsis + Apoapsis + 2 * SelectedBody.Radius) / 2.0, LongOfAsc, ArgPe, 0, UT.Value, SelectedBody);
+                data.orbit.meanAnomalyAtEpoch = MeanAnomalyAtEpoch;
+                data.altitude = Periapsis;
+                data.orbiting = true;
+            }
+            else
+            {
+                data.orbit = null;
+                data.altitude = null;
+                data.orbiting = false;
+                data.latitude = 0;
+                data.longitude = 0;
+            }
 
             data.body = SelectedBody;
-            data.altitude = Periapsis;
             data.shipConstruct = Ship;
             //data.crew = manifest.GetAllCrew();
             data.flagURL = EditorLogic.FlagURL;
-            data.orbiting = true;
             data.owned = true;
             data.vesselType = VesselType.Ship;
 

@@ -11,7 +11,7 @@ namespace SimuLite
 
         public SimulationConfigWindow() : base(8234, "Simulation Configuration")
         {
-            config = new SimulationConfiguration() { OrbitalSimulation = (StaticInformation.Simulation?.OrbitalSimulation ?? false) };
+            config = new SimulationConfiguration() { SimType = (StaticInformation.Simulation?.SimType).GetValueOrDefault() };
 
             //these are set from the last simulation
             SetPe(PeString);
@@ -106,24 +106,36 @@ namespace SimuLite
             }
             GUILayout.BeginVertical();
 
-            GUILayout.Label("Selected Body:");
-            GUILayout.Label(config.SelectedBody.name);
+            SimulationType currentType = config.SimType;
+            config.SimType = (SimulationType)GUILayout.SelectionGrid((int)config.SimType, new string[] { "Regular", "Orbital", "Landed" }, 3);
 
-            if (config.SelectedBody == Planetarium.fetch.Home)
+            if (config.SimType != currentType)
             {
-                bool newValue = GUILayout.Toggle(config.OrbitalSimulation, "Orbital Simulation");
-                if (newValue != config.OrbitalSimulation)
+                MinimizeHeight();
+            }
+
+            if (config.SimType != SimulationType.REGULAR)
+            {
+                GUILayout.Label("Selected Body:");
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("<", GUILayout.Width(10)))
                 {
-                    MinimizeHeight();
-                    config.OrbitalSimulation = newValue;
+                    int curIndex = FlightGlobals.Bodies.IndexOf(config.SelectedBody);
+                    curIndex--;
+                    config.SelectedBody = FlightGlobals.Bodies[curIndex % FlightGlobals.Bodies.Count];
                 }
+                GUILayout.FlexibleSpace();
+                GUILayout.Label(config.SelectedBody.name);
+                GUILayout.FlexibleSpace();
+                if (GUILayout.Button(">", GUILayout.Width(10)))
+                {
+                    int curIndex = FlightGlobals.Bodies.IndexOf(config.SelectedBody);
+                    curIndex++;
+                    config.SelectedBody = FlightGlobals.Bodies[curIndex % FlightGlobals.Bodies.Count];
+                }
+                GUILayout.EndHorizontal();
             }
-            else
-            {
-                config.OrbitalSimulation = true;
-            }
-
-            if (config.OrbitalSimulation)
+            else if (config.SimType == SimulationType.ORBITAL)
             {
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("Apoapsis (km):");
@@ -144,13 +156,18 @@ namespace SimuLite
                 GUILayout.Label("Start at: ");
                 startPointSelection = GUILayout.SelectionGrid(startPointSelection, new string[2] { "Periapsis", "Apoapsis" }, 2);
                 GUILayout.EndHorizontal();
+
+                config.MeanAnomalyAtEpoch = Math.PI * startPointSelection; //0 if Pe, PI if Ap
+            }
+            else
+            {
+                //landed. TODO: Implement
             }
 
 
             bool startable = canStart();
             if (startable && GUILayout.Button("Simulate!"))
             {
-                config.MeanAnomalyAtEpoch = Math.PI * startPointSelection; //0 if Pe, 180 if Ap
                 config.StartSimulation();
             }
             else if (!startable)
@@ -176,7 +193,11 @@ namespace SimuLite
 
         private bool canStart()
         {
-            bool canStart = (apOk && peOk && incOk && config?.Ship?.Count > 0);
+            bool canStart = (config?.Ship?.Count > 0);
+            if (config.SimType == SimulationType.ORBITAL)
+            {
+                canStart &= (apOk && peOk && incOk);
+            }
             return canStart;
         }
 
