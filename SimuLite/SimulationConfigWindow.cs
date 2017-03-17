@@ -210,7 +210,7 @@ namespace SimuLite
                     Dictionary<string, string> variables = new Dictionary<string, string>();
                     variables.Add("H", coreHours.ToString()); //this way you can buy them in bulk at cheaper rates maybe
                     //other variables? R&D level? Scientists/Engineers?
-                    double cost = MagiCore.MathParsing.ParseMath(Configuration.CoreHourCost, variables);
+                    double cost = MagiCore.MathParsing.ParseMath(Configuration.Instance.CoreHourCost, variables);
                     if (GUILayout.Button("√"+Math.Ceiling(cost)))
                     {
                         //purchase the core hours!
@@ -259,7 +259,12 @@ namespace SimuLite
         #region Private Methods
         private bool canStart()
         {
-            bool canStart = ((!config.OrbitalSimulation || (apOk && peOk && incOk)) && config?.Ship?.Count > 0);
+            bool canStart = (config?.Ship?.Count > 0);
+            if (config.SimType == SimulationType.ORBITAL)
+            {
+                canStart &= (apOk && peOk && incOk);
+            }
+
             canStart &= config.Complexity >= 0 && (StaticInformation.RemainingCoreHours > config.Complexity);
             return canStart;
         }
