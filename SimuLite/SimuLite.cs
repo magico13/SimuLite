@@ -8,8 +8,8 @@ using UnityEngine;
 
 namespace SimuLite
 {
-    [KSPAddon(KSPAddon.Startup.AllGameScenes, false)]
-    public class SimuLiteLoader : MonoBehaviour
+    [KSPScenario(ScenarioCreationOptions.AddToAllGames, new GameScenes[] {GameScenes.EDITOR, GameScenes.FLIGHT, GameScenes.SPACECENTER, GameScenes.TRACKSTATION})]
+    public class SimuLiteLoader : ScenarioModule
     {
         public void Start()
         {
@@ -18,6 +18,48 @@ namespace SimuLite
             { //Don't load the backup if currently in the flight scene
                 SimuLite.LoadBackupFile(HighLogic.LoadedScene);
             }
+        }
+
+        public override void OnLoad(ConfigNode node)
+        {
+            base.OnLoad(node);
+            //load the saved data from our node
+            try
+            {
+                if (node.HasNode("SimuLite"))
+                {
+                    ConfigNode ourNode = node.GetNode("SimuLite");
+                    //get the corehours from the node
+                    string coreHoursStr = ourNode.GetValue(nameof(StaticInformation.RemainingCoreHours));
+                    double coreHours = 0;
+                    if (double.TryParse(coreHoursStr, out coreHours))
+                    {
+                        StaticInformation.RemainingCoreHours = coreHours;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogException(ex);
+            }
+        }
+
+        public override void OnSave(ConfigNode node)
+        {
+            try
+            {
+                //Add the remaining core hours to the save file
+                ConfigNode ourNode = new ConfigNode("SimuLite");
+                ourNode.AddValue(nameof(StaticInformation.RemainingCoreHours), StaticInformation.RemainingCoreHours);
+                node.AddNode("SimuLite", ourNode);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogException(ex);
+            }
+
+            base.OnSave(node);
+            
         }
     }
 
@@ -70,6 +112,7 @@ namespace SimuLite
             if (StaticInformation.RemainingCoreHours <= 0)
             {
                 //pause. Popup message saying out of time, purchase more or revert
+                pauseWindow.Show();
             }
 
             

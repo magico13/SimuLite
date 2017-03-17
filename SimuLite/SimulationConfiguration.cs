@@ -15,7 +15,11 @@ namespace SimuLite
         public ShipConstruct Ship
         {
             get { return _ship; }
-            set { _ship = value; }
+            set
+            {
+                _ship = value;
+                CalculateComplexity();
+            }
         }
 
 
@@ -85,6 +89,7 @@ namespace SimuLite
                 if (_ut != value)
                 {
                     _ut = value;
+                    CalculateComplexity();
                 }
             }
         }
@@ -258,7 +263,6 @@ namespace SimuLite
 
         #endregion Orbital Parameters
 
-
         #region Public Methods
         /// <summary>
         /// Sets the simulation time given the time string
@@ -291,40 +295,42 @@ namespace SimuLite
         /// <returns>The simulation cost</returns>
         public double CalculateComplexity()
         {
-            CelestialBody Kerbin = Planetarium.fetch.Home;
-            Dictionary<string, string> vars = new Dictionary<string, string>();
-            vars.Add("L", Duration.ToString()); //Sim length in seconds
-            vars.Add("M", SelectedBody.Mass.ToString()); //Body mass
-            vars.Add("KM", Kerbin.Mass.ToString()); //Kerbin mass
-            vars.Add("A", SelectedBody.atmosphere ? "1" : "0"); //Presence of atmosphere
-            vars.Add("S", (SelectedBody != Planetarium.fetch.Sun && SelectedBody.referenceBody != Planetarium.fetch.Sun) ? "1" : "0"); //Is a moon (satellite)
-
-            float out1, out2;
-            vars.Add("m", Ship.GetTotalMass().ToString()); //Vessel loaded mass
-            vars.Add("C", Ship.GetShipCosts(out out1, out out2).ToString()); //Vessel loaded cost
-            vars.Add("dT", (UT - Planetarium.GetUniversalTime()).ToString()); //How far ahead in time the simulation is from right now (or negative for in the past)
-
-            //vars.Add("s", SimCount.ToString()); //Number of times simulated this editor session //temporarily disabled
-
-
-            CelestialBody Parent = SelectedBody;
-            if (Parent != Planetarium.fetch.Sun)
+            try
             {
-                while (Parent.referenceBody != Planetarium.fetch.Sun)
+                CelestialBody Kerbin = Planetarium.fetch.Home;
+                Dictionary<string, string> vars = new Dictionary<string, string>();
+                vars.Add("L", Duration.ToString()); //Sim length in seconds
+                vars.Add("M", SelectedBody.Mass.ToString()); //Body mass
+                vars.Add("KM", Kerbin.Mass.ToString()); //Kerbin mass
+                vars.Add("A", SelectedBody.atmosphere ? "1" : "0"); //Presence of atmosphere
+                vars.Add("S", (SelectedBody != Planetarium.fetch.Sun && SelectedBody.referenceBody != Planetarium.fetch.Sun) ? "1" : "0"); //Is a moon (satellite)
+
+                float out1, out2;
+                vars.Add("m", Ship.GetTotalMass().ToString()); //Vessel loaded mass
+                vars.Add("C", Ship.GetShipCosts(out out1, out out2).ToString()); //Vessel loaded cost
+                vars.Add("dT", (UT - Planetarium.GetUniversalTime()).ToString()); //How far ahead in time the simulation is from right now (or negative for in the past)
+
+                //vars.Add("s", SimCount.ToString()); //Number of times simulated this editor session //temporarily disabled
+
+
+                CelestialBody Parent = SelectedBody;
+                if (Parent != Planetarium.fetch.Sun)
                 {
-                    Parent = Parent.referenceBody;
+                    while (Parent.referenceBody != Planetarium.fetch.Sun)
+                    {
+                        Parent = Parent.referenceBody;
+                    }
                 }
-            }
-            double orbitRatio = 1;
-            if (Parent.orbit != null)
-            {
-                if (Parent.orbit.semiMajorAxis >= Kerbin.orbit.semiMajorAxis)
-                    orbitRatio = Parent.orbit.semiMajorAxis / Kerbin.orbit.semiMajorAxis;
-                else
-                    orbitRatio = Kerbin.orbit.semiMajorAxis / Parent.orbit.semiMajorAxis;
-            }
-            vars.Add("SMA", orbitRatio.ToString());
-            vars.Add("PM", Parent.Mass.ToString());
+                double orbitRatio = 1;
+                if (Parent.orbit != null)
+                {
+                    if (Parent.orbit.semiMajorAxis >= Kerbin.orbit.semiMajorAxis)
+                        orbitRatio = Parent.orbit.semiMajorAxis / Kerbin.orbit.semiMajorAxis;
+                    else
+                        orbitRatio = Kerbin.orbit.semiMajorAxis / Parent.orbit.semiMajorAxis;
+                }
+                vars.Add("SMA", orbitRatio.ToString());
+                vars.Add("PM", Parent.Mass.ToString());
 
             vars.Add("T", ((int)SimType).ToString()); //simulation type (0=regular, 1=orbital, 2=landed)
 
@@ -337,6 +343,11 @@ namespace SimuLite
                 default: Complexity = MagiCore.MathParsing.ParseMath(Configuration.Instance.SimComplexityRegular, vars); break;
             }
             return Complexity;
+            }
+            catch
+            {
+                return -1;
+            }
         }
 
         /// <summary>
