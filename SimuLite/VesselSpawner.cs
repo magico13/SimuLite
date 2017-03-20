@@ -104,7 +104,6 @@ namespace SimuLite
 
         public static Guid? CreateVessel(VesselData vesselData)
         {
-            Debug.Log("1");
             String gameDataDir = KSPUtil.ApplicationRootPath;
             gameDataDir = gameDataDir.Replace("\\", "/");
             if (!gameDataDir.EndsWith("/"))
@@ -114,12 +113,10 @@ namespace SimuLite
             gameDataDir += "GameData";
 
             // Spawn the vessel in the game world
-            Debug.Log("2");
             // Set additional info for landed vessels
             bool landed = false;
             if (!vesselData.orbiting)
             {
-                Debug.Log("3.0");
                 landed = true;
                 if (vesselData.altitude == null)
                 {
@@ -130,20 +127,16 @@ namespace SimuLite
 
                 vesselData.orbit = new Orbit(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, vesselData.body);
                 vesselData.orbit.UpdateFromStateVectors(pos, vesselData.body.getRFrmVel(pos), vesselData.body, Planetarium.GetUniversalTime());
-                Debug.Log("3.0.1");
             }
             else
             {
-                Debug.Log("3.1");
                 vesselData.orbit.referenceBody = vesselData.body;
             }
-            Debug.Log("4");
             ConfigNode[] partNodes;
             //UntrackedObjectClass sizeClass;
             ShipConstruct shipConstruct = null;
             if (vesselData.shipConstruct != null)
             {
-                Debug.Log("5");
                 // Save the current ShipConstruction ship, otherwise the player will see the spawned ship next time they enter the VAB!
                 //ConfigNode currentShip = ShipConstruction.ShipConfig;
 
@@ -157,7 +150,6 @@ namespace SimuLite
                 //ShipConstruction.ShipConfig = currentShip;
 
                 shipConstruct = vesselData.shipConstruct;
-                Debug.Log("6");
                 // Set the name
                 if (string.IsNullOrEmpty(vesselData.name))
                 {
@@ -179,7 +171,6 @@ namespace SimuLite
                     // value.
                     p.temperature = 1.0;
                 }
-                Debug.Log("7");
                 // Estimate an object class, numbers are based on the in game description of the
                 // size classes.
                 float size = shipConstruct.shipSize.magnitude / 2.0f;
@@ -203,7 +194,6 @@ namespace SimuLite
                 //{
                 //    sizeClass = UntrackedObjectClass.E;
                 //}
-                Debug.Log("8");
                 foreach (CrewData cd in vesselData.crew)
                 {
                     bool success = false;
@@ -226,7 +216,6 @@ namespace SimuLite
                         break;
                     }
                 }
-                Debug.Log("9");
                 // Create a dummy ProtoVessel, we will use this to dump the parts to a config node.
                 // We can't use the config nodes from the .craft file, because they are in a
                 // slightly different format than those required for a ProtoVessel.
@@ -235,7 +224,6 @@ namespace SimuLite
                 Vessel dummyVessel = new GameObject().AddComponent<Vessel>();
                 dummyVessel.parts = shipConstruct.parts;
                 dummyProto.vesselRef = dummyVessel;
-                Debug.Log("10");
                 // Create the ProtoPartSnapshot objects and then initialize them
                 foreach (Part p in shipConstruct.parts)
                 {
@@ -245,7 +233,6 @@ namespace SimuLite
                 {
                     p.storePartRefs();
                 }
-                Debug.Log("11");
                 // Create the ship's parts
                 partNodes = dummyProto.protoPartSnapshots.Select<ProtoPartSnapshot, ConfigNode>(GetNodeForPart).ToArray();
 
@@ -284,7 +271,6 @@ namespace SimuLite
                 }
             }
 
-            Debug.Log("12");
             // Create additional nodes //not needed?
             //ConfigNode[] additionalNodes = new ConfigNode[1];
             //DiscoveryLevels discoveryLevel = vesselData.owned ? DiscoveryLevels.Owned : DiscoveryLevels.Unowned;
@@ -385,7 +371,6 @@ namespace SimuLite
                 protoVesselNode.SetValue("prst", false.ToString());
             }
 
-            Debug.Log("13");
 
             // Add vessel to the game
             ProtoVessel protoVessel = new ProtoVessel(protoVesselNode, HighLogic.CurrentGame);
@@ -393,7 +378,6 @@ namespace SimuLite
             HighLogic.CurrentGame.flightState.protoVessels.Add(protoVessel);
             // Store the id for later use
             vesselData.id = protoVessel.vesselRef.id;
-            Debug.Log("14");
             // Associate it so that it can be used in contract parameters
             //ContractVesselTracker.Instance.AssociateVessel(vesselData.name, protoVessel.vesselRef);
 

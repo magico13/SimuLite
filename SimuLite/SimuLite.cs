@@ -87,6 +87,7 @@ namespace SimuLite
             }
             //load config
             Configuration.LoadFromFile();
+            Configuration.SaveToFile();
 
             if (HighLogic.LoadedSceneIsEditor) //hacky hack for now
             {

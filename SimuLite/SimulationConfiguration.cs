@@ -263,6 +263,26 @@ namespace SimuLite
 
         #endregion Orbital Parameters
 
+        #region Landed Parameters
+        private double _lat = 0;
+
+        public double Latitude
+        {
+            get { return _lat; }
+            set { _lat = value % 360; }
+        }
+
+        private double _lon = 0;
+
+        public double Longitude
+        {
+            get { return _lon; }
+            set { _lon = value % 360; }
+        }
+
+
+        #endregion Landed Parameters
+
         #region Public Methods
         /// <summary>
         /// Sets the simulation time given the time string
@@ -416,8 +436,8 @@ namespace SimuLite
                 data.orbit = null;
                 data.altitude = null;
                 data.orbiting = false;
-                data.latitude = 0;
-                data.longitude = 0;
+                data.latitude = Latitude;
+                data.longitude = Longitude;
             }
 
             data.body = SelectedBody;

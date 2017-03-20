@@ -10,45 +10,32 @@ namespace SimuLite
     {
         public SimulationConfigWindow() : base(8234, "Simulation Configuration")
         {
-            config = new SimulationConfiguration() { SimType = (StaticInformation.Simulation?.SimType).GetValueOrDefault() };
+            config = new SimulationConfiguration();
 
             //these are set from the last simulation
             if (StaticInformation.Simulation != null)
             {
+                config.SelectedBody = StaticInformation.Simulation.SelectedBody;
+                config.SimType = StaticInformation.Simulation.SimType;
+
                 PeString = (StaticInformation.Simulation.Periapsis / 1000).ToString();
                 ApString = (StaticInformation.Simulation.Apoapsis / 1000).ToString();
                 InclinationString = StaticInformation.Simulation.Inclination.ToString();
-                startPointSelection = (StaticInformation.Simulation.MeanAnomalyAtEpoch > 0) ? 1 : 0;
+                startPointSelection = (StaticInformation.Simulation.MeanAnomalyAtEpoch != 0) ? 1 : 0;
+                LatString = StaticInformation.Simulation.Latitude.ToString();
+                LonString = StaticInformation.Simulation.Longitude.ToString();
             }
 
             SetPe(PeString);
             SetAp(ApString);
             SetInc(InclinationString);
+            SetLat(LatString);
+            SetLon(LonString);
         }
 
         internal SimulationConfiguration config;
 
         #region UI Properties
-        /// <summary>
-        /// Whether to show advanced options (time options and such)
-        /// </summary>
-        public bool ShowAdvanced { get; set; }
-
-        private string _durationString = "15m";
-
-        public string DurationString
-        {
-            get { return _durationString; }
-            set
-            {
-                if (value != _durationString)
-                {
-                    _durationString = value;
-                    config.SetDuration(_durationString); //update viewmodel
-                }
-            }
-        }
-
         private string _peString = "75";
 
         public string PeString
@@ -75,11 +62,27 @@ namespace SimuLite
 
         private int startPointSelection = 0;
 
-        private string _coreHoursBuy = "0";
+
+        private double _coreHoursToBuy = 0;
+        private double _coreHoursToBuyCost = 0;
+        private string _coreHoursBuyStr = "0";
         public string CoreHoursBuy
         {
-            get { return _coreHoursBuy; }
-            set { _coreHoursBuy = value; }
+            get { return _coreHoursBuyStr; }
+            set
+            {
+                if (_coreHoursBuyStr != value)
+                {
+                    _coreHoursBuyStr = value;
+                    if (double.TryParse(value, out _coreHoursToBuy))
+                    {
+                        Dictionary<string, string> variables = new Dictionary<string, string>();
+                        variables.Add("H", _coreHoursToBuy.ToString()); //this way you can buy them in bulk at cheaper rates maybe
+                                                                  //other variables? R&D level? Scientists/Engineers?
+                        _coreHoursToBuyCost = MagiCore.MathParsing.ParseMath(Configuration.Instance.CoreHourCost, variables);
+                    }
+                }
+            }
         }
 
         public CelestialBody SelectedBody
@@ -93,6 +96,23 @@ namespace SimuLite
                 config.SelectedBody = value;
             }
         }
+
+        private string _latString = "0";
+
+        public string LatString
+        {
+            get { return _latString; }
+            set { _latString = value; }
+        }
+
+        private string _lonString = "0";
+
+        public string LonString
+        {
+            get { return _lonString; }
+            set { _lonString = value; }
+        }
+
         #endregion UI Properties
 
 
@@ -100,13 +120,15 @@ namespace SimuLite
         private GUIStyle regularTextField = null;
         private GUIStyle redColorTextField = null;
         private bool apOk = true, peOk = true, incOk = true;
+        private bool latOk = true, lonOk = true;
         #endregion
 
         public override void Draw(int windowID)
         {
             //planet
             //orbit?
-            //  //altitude
+            //  //apoapsis/periapsis
+            //  //startat ap/pe?
             //  //inclination
             //else(landed)
             //  //latitude
@@ -120,6 +142,8 @@ namespace SimuLite
 
             //?expected duration?
             //?expected core hour usage?
+
+            //the stuff to purchase more core hours should be hidden until needed
 
             if (regularTextField == null || redColorTextField == null)
             {
@@ -139,11 +163,11 @@ namespace SimuLite
                 MinimizeHeight();
             }
 
-            if (config.SimType != SimulationType.REGULAR)
+            if (config.SimType != SimulationType.REGULAR) //orbital or landed only
             {
                 GUILayout.Label("Selected Body:");
                 GUILayout.BeginHorizontal();
-                if (GUILayout.Button("<", GUILayout.Width(10)))
+                if (GUILayout.Button("<", GUILayout.Width(30)))
                 {
                     int curIndex = FlightGlobals.Bodies.IndexOf(config.SelectedBody);
                     curIndex--;
@@ -152,7 +176,7 @@ namespace SimuLite
                 GUILayout.FlexibleSpace();
                 GUILayout.Label(config.SelectedBody.name);
                 GUILayout.FlexibleSpace();
-                if (GUILayout.Button(">", GUILayout.Width(10)))
+                if (GUILayout.Button(">", GUILayout.Width(30)))
                 {
                     int curIndex = FlightGlobals.Bodies.IndexOf(config.SelectedBody);
                     curIndex++;
@@ -160,7 +184,7 @@ namespace SimuLite
                 }
                 GUILayout.EndHorizontal();
             }
-            else if (config.SimType == SimulationType.ORBITAL)
+            if (config.SimType == SimulationType.ORBITAL) //if orbital, show orbital stuff
             {
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("Apoapsis (km):");
@@ -180,6 +204,19 @@ namespace SimuLite
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("Start at: ");
                 startPointSelection = GUILayout.SelectionGrid(startPointSelection, new string[2] { "Periapsis", "Apoapsis" }, 2);
+                config.MeanAnomalyAtEpoch = Math.PI * startPointSelection;
+                GUILayout.EndHorizontal();
+            }
+            else if (config.SimType == SimulationType.LANDED)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Latitude:");
+                latOk = SetLat(GUILayout.TextField(LatString, latOk ? regularTextField : redColorTextField, GUILayout.Width(100)));
+                GUILayout.EndHorizontal();
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Longitude:");
+                lonOk = SetLon(GUILayout.TextField(LonString, lonOk ? regularTextField : redColorTextField, GUILayout.Width(100)));
                 GUILayout.EndHorizontal();
             }
 
@@ -204,20 +241,15 @@ namespace SimuLite
                 GUILayout.Label("Purchase core-hours:");
                 GUILayout.BeginHorizontal();
                 CoreHoursBuy = GUILayout.TextField(CoreHoursBuy, GUILayout.Width(100));
-                double coreHours = 0;
-                if (double.TryParse(CoreHoursBuy, out coreHours))
+                if (_coreHoursToBuy > 0)
                 {
-                    Dictionary<string, string> variables = new Dictionary<string, string>();
-                    variables.Add("H", coreHours.ToString()); //this way you can buy them in bulk at cheaper rates maybe
-                    //other variables? R&D level? Scientists/Engineers?
-                    double cost = MagiCore.MathParsing.ParseMath(Configuration.Instance.CoreHourCost, variables);
-                    if (GUILayout.Button("√"+Math.Ceiling(cost)))
+                    if (GUILayout.Button("√" + Math.Ceiling(_coreHoursToBuyCost)))
                     {
                         //purchase the core hours!
-                        if (Funding.Instance.Funds >= cost)
+                        if (Funding.Instance.Funds >= _coreHoursToBuyCost)
                         {
-                            Funding.Instance.AddFunds(-cost, TransactionReasons.None);
-                            StaticInformation.RemainingCoreHours += coreHours;
+                            Funding.Instance.AddFunds(-_coreHoursToBuyCost, TransactionReasons.None);
+                            StaticInformation.RemainingCoreHours += _coreHoursToBuy;
                         }
                     }
                 }
@@ -300,6 +332,30 @@ namespace SimuLite
             if (double.TryParse(value, out inc))
             {
                 config.Inclination = inc;
+                return true;
+            }
+            return false;
+        }
+
+        private bool SetLat(string value)
+        {
+            _latString = value;
+            double lat;
+            if (double.TryParse(value, out lat))
+            {
+                config.Latitude = lat;
+                return true;
+            }
+            return false;
+        }
+
+        private bool SetLon(string value)
+        {
+            _lonString = value;
+            double lon;
+            if (double.TryParse(value, out lon))
+            {
+                config.Longitude = lon;
                 return true;
             }
             return false;
