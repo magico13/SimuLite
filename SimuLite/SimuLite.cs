@@ -75,9 +75,17 @@ namespace SimuLite
 
 
         #region Public Properties
-        
+
         #endregion Public Properties
 
+
+        //public void Awake()
+        //{
+        //    if (HighLogic.LoadedSceneIsEditor && KSP.UI.Screens.StageManager.Instance != null)
+        //    {
+        //        Destroy(KSP.UI.Screens.StageManager.Instance);
+        //    }
+        //}
 
         public void Start()
         {

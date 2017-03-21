@@ -113,6 +113,42 @@ namespace SimuLite
             set { _lonString = value; }
         }
 
+
+        private double? _trivialLimit = null;
+
+        public double TrivialLimit
+        {
+            get
+            {
+                if (_trivialLimit == null)
+                {
+                    //R&D level, VAB level, SPH level
+                    Dictionary<string, string> vars = new Dictionary<string, string>()
+                    {
+                        ["RND"] = SimuLite.GetFacilityLevel(SpaceCenterFacility.ResearchAndDevelopment).ToString(),
+                        ["VAB"] = SimuLite.GetFacilityLevel(SpaceCenterFacility.VehicleAssemblyBuilding).ToString(),
+                        ["SPH"] = SimuLite.GetFacilityLevel(SpaceCenterFacility.SpaceplaneHangar).ToString()
+                    };
+
+                    _trivialLimit = MagiCore.MathParsing.ParseMath(Configuration.Instance.TrivialLimit, vars);
+                }
+                return _trivialLimit.GetValueOrDefault();
+            }
+        }
+
+        private bool _showPurchaseOption = false;
+        public bool ShowPurchaseOption
+        {
+            get { return _showPurchaseOption; }
+            set
+            {
+                if (value != _showPurchaseOption)
+                {
+                    _showPurchaseOption = value;
+                    MinimizeHeight();
+                }
+            }
+        }
         #endregion UI Properties
 
 
@@ -122,6 +158,7 @@ namespace SimuLite
         private bool apOk = true, peOk = true, incOk = true;
         private bool latOk = true, lonOk = true;
         #endregion
+
 
         public override void Draw(int windowID)
         {
@@ -227,18 +264,18 @@ namespace SimuLite
             GUILayout.Label(config.Complexity.ToString("N2") + " core-hours/s");
             GUILayout.EndHorizontal();
 
-            if (HighLogic.CurrentGame.Mode == Game.Modes.CAREER)
+            GUILayout.Label("Max simulation time: ");
+            double time = StaticInformation.RemainingCoreHours / config.Complexity;
+            GUILayout.Label((config.Complexity < TrivialLimit || HighLogic.CurrentGame.Mode != Game.Modes.CAREER) ? "Trivial - Infinite Duration" : MagiCore.Utilities.GetFormattedTime(time, true));
+
+            if (HighLogic.CurrentGame.Mode == Game.Modes.CAREER && (ShowPurchaseOption = GUILayout.Toggle(ShowPurchaseOption, "Purchase core-hours")))
             {
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("Core-hours: ");
+                GUILayout.Label("Curent core-hours: ");
                 GUILayout.Label(StaticInformation.RemainingCoreHours.ToString("N2") + " core-hours");
                 GUILayout.EndHorizontal();
 
-                GUILayout.Label("Max simulation time: ");
-                double time = StaticInformation.RemainingCoreHours / config.Complexity;
-                GUILayout.Label(MagiCore.Utilities.GetFormattedTime(time, true));
-
-                GUILayout.Label("Purchase core-hours:");
+                GUILayout.Label("Additional core-hours:");
                 GUILayout.BeginHorizontal();
                 CoreHoursBuy = GUILayout.TextField(CoreHoursBuy, GUILayout.Width(100));
                 if (_coreHoursToBuy > 0)
@@ -255,7 +292,9 @@ namespace SimuLite
                 }
                 else
                 {
+                    GUILayout.FlexibleSpace();
                     GUILayout.Label("Invalid");
+                    GUILayout.FlexibleSpace();
                 }
                 GUILayout.EndHorizontal();
 
@@ -295,6 +334,10 @@ namespace SimuLite
             if (config.SimType == SimulationType.ORBITAL)
             {
                 canStart &= (apOk && peOk && incOk);
+            }
+            else if (config.SimType == SimulationType.LANDED)
+            {
+                canStart &= (latOk && lonOk);
             }
 
             canStart &= config.Complexity >= 0 && (StaticInformation.RemainingCoreHours > config.Complexity);
