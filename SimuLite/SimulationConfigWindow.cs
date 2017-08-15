@@ -79,7 +79,7 @@ namespace SimuLite
                         Dictionary<string, string> variables = new Dictionary<string, string>();
                         variables.Add("H", _coreHoursToBuy.ToString()); //this way you can buy them in bulk at cheaper rates maybe
                                                                   //other variables? R&D level? Scientists/Engineers?
-                        _coreHoursToBuyCost = MagiCore.MathParsing.ParseMath(Configuration.Instance.CoreHourCost, variables);
+                        _coreHoursToBuyCost = MagiCore.MathParsing.ParseMath("SL_COREHR_COST", Configuration.Instance.CoreHourCost, variables);
                     }
                 }
             }
@@ -130,7 +130,7 @@ namespace SimuLite
                         ["SPH"] = SimuLite.GetFacilityLevel(SpaceCenterFacility.SpaceplaneHangar).ToString()
                     };
 
-                    _trivialLimit = MagiCore.MathParsing.ParseMath(Configuration.Instance.TrivialLimit, vars);
+                    _trivialLimit = MagiCore.MathParsing.ParseMath("SL_TRIVIAL_LIMIT", Configuration.Instance.TrivialLimit, vars);
                 }
                 return _trivialLimit.GetValueOrDefault();
             }

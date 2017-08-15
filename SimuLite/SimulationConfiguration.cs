@@ -352,17 +352,17 @@ namespace SimuLite
                 vars.Add("SMA", orbitRatio.ToString());
                 vars.Add("PM", Parent.Mass.ToString());
 
-            vars.Add("T", ((int)SimType).ToString()); //simulation type (0=regular, 1=orbital, 2=landed)
+                vars.Add("T", ((int)SimType).ToString()); //simulation type (0=regular, 1=orbital, 2=landed)
 
 
-            switch (SimType)
-            {
-                case SimulationType.REGULAR: Complexity = MagiCore.MathParsing.ParseMath(Configuration.Instance.SimComplexityRegular, vars); break;
-                case SimulationType.ORBITAL: Complexity = MagiCore.MathParsing.ParseMath(Configuration.Instance.SimComplexityOrbital, vars); break;
-                case SimulationType.LANDED: Complexity = MagiCore.MathParsing.ParseMath(Configuration.Instance.SimComplexityLanded, vars); break;
-                default: Complexity = MagiCore.MathParsing.ParseMath(Configuration.Instance.SimComplexityRegular, vars); break;
-            }
-            return Complexity;
+                switch (SimType)
+                {
+                    case SimulationType.REGULAR: Complexity = MagiCore.MathParsing.ParseMath("SL_COMPLEXITY", Configuration.Instance.SimComplexityRegular, vars); break;
+                    case SimulationType.ORBITAL: Complexity = MagiCore.MathParsing.ParseMath("SL_COMPLEXITY", Configuration.Instance.SimComplexityOrbital, vars); break;
+                    case SimulationType.LANDED: Complexity = MagiCore.MathParsing.ParseMath("SL_COMPLEXITY", Configuration.Instance.SimComplexityLanded, vars); break;
+                    default: Complexity = MagiCore.MathParsing.ParseMath("SL_COMPLEXITY", Configuration.Instance.SimComplexityRegular, vars); break;
+                }
+                return Complexity;
             }
             catch
             {
